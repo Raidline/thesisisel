@@ -93,6 +93,7 @@
 % Standard configuration for user included packages
 %================================================
 \usepackage{sty/code}
+\usepackage{minted}
 
 % Where to look for figures
 \graphicspath{{Logo/}{Chapters/img/}} 
@@ -143,9 +144,6 @@
 % i.e., "bsc", "msc" and "phd", otherwise, it will be silently ignored
 \acknowledgementsfile{acknowledgements}
 
-% Resume/summary text in Portuguese
-\ptabstractfile{resumo}
-
 % Resume/summary text in English
 \enabstractfile{abstract}
 
@@ -163,9 +161,9 @@
 % 
 % TEX CHAPTERS:
 % syntax: \chapterfile{file}
-\chapterfile{chapter1}
-\chapterfile{chapter2}
-\chapterfile{chapter3}
+\chapterfile{introduction}
+\chapterfile{background}
+\chapterfile{functional_reactive_tempaltes}
 
 %% ------------------------------------------------------------
 %% Bibliography style

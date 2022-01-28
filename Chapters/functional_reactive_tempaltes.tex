@@ -1,51 +1,114 @@
-\chapter{A Short \texttt{LaTeX} Tutorial with Examples}
-\label{cha:a_short_latex_tutorial_with_examples}
+\chapter{Functional Reactive Templates}
+\label{cha:functional_reactive_templates}
 
-This Chapter aims at exemplifying how to do common stuff with \texttt{LaTeX}. We also show some stuff which is not that common! ;) 
+In this chapter the proposal for handling reactive web templates with a functional approach, by enhancing the framework \texttt{HtmlFlow}, will be discussed. 
 
-Please, use these examples as a starting point, but you should always consider using the \emph{Big Oracle} (aka, \href{http://www.google.com}{Google}, your best friend) to search for additional information or alternative ways for achieving similar results.
+We will start by describing \texttt{HtmlFlow} architecture and functionality. 
+Followed by the proposal for supporting reactive templates is layed out.
+
+\section{HtmlFlow} % (fold)
+\label{sec:html_flow}
+
+HtmlFlow is a Java DSL to write typesafe HTML documents in a fluent style. The HTML is generated through the creation of a template.
+Templates are expressed in an internal DSL, meaning Java code is written to produce the template. 
+This implies that whilst creating the template we can use the full Java tool chain. 
+
+As can see in the example,
+
+\begin{minted}{java}
+	 view
+                .html()
+                    .head()
+                        .title()
+                        .text("title")
+                    .__()
+                        .link().attrRel(EnumRelType.STYLESHEET).attrHref("/css/bootstrap.min.4.6.0.css")
+                    .__()
+                    .__()
+                .body()
+                (...)
+                .footer()
+                (...)
+                .__();
+\end{minted}
+
+In a way, HtmlFlow templates are essentially plain Java functions.
 
 
-\section{Document Structure} % (fold)
-\label{sec:document_structure}
-
-In engineering and science, a thesis or dissertation is the culmination of a master's or Ph.D. degree. A thesis or dissertation presents the research that the student performed for that degree. From the student's perspective, the primary purpose of a thesis or dissertation is to persuade the student's committee that he or she has performed and communicated research worthy of the degree. In other words, the main purpose of the thesis or dissertation is to help the student secure the degree. 
-
-From the perspective of the engineering and scientific community, the primary purpose is to document the student's research. Although much research from theses and dissertations is also communicated in journal articles, theses and dissertations stand as detailed documents that allow others to see what the work was and how it was performed. For that reason, theses and dissertations are often read by other graduate students, especially those working in the research group of the authoring student \cite{gustavii2016write, glasman2010science, chicago, strunk}. 
+We will now have a look at the three components that make HtmlFlow.
 	
-With a thesis or dissertation, the format also encompasses the names of the sections that are expected: 
 \begin{enumerate}
-\item Thesis Cover
-\item Acknowledgments (if exist)
-\item Abstract (Portuguese and English)
-\item Index
-\item List of Figures
-\item List of Tables
-\item Nomenclature/List of Abbreviations (if exists)
-\item Glossary (if exists)
-\item Introduction
-\item State-of-the-Art or Related work
-\item Proposed method
-\item Experiment result
-\item Conclusion and Future work
-\item References, and 
-\item Appendix (if exists)
+\item Views and Templates
+\item Kind of Templates
+\item Visitors
 \end{enumerate}
  
-\subsection{State-of-the-Art}
-\label{sec:state}
+\subsection{Views and Tempaltes}
+\label{sec:view_templates}
 
-State-of-the-Art (SoTA) is a step to demonstrate the novelty of your research results. The importance of being the first to demonstrate research results is a cornerstone of the research business\footnote{``Why and how to write the state-of-the-art'', by Babak A. Farshchian, May 22, 2007}. 
+A View in HtmlFlow is what hold a certain template, and allows certain actions to be caried out, or not, depending of the type of View we choose. 
+So we can look at it as wrapper for the complete HTML document.
 
-Besides demonstrating the novelty of your research results, a SoTA has other important properties:
+In terms of Views, HtmlFlow presents two options of representing a view.
+
 \begin{enumerate}
-\item It teaches you a lot about your research problem. By reading literature related to your research problem you will learn from other researchers and it will be easier for you to understand and analyze your problem;
-\item It proves that your research problem has relevance;
-\item It shows different approaches to a solution;
-\item It shows what you can reuse from what others have done. 
+	\item \emph{DynamicHtml}
+	\item \emph{StaticHtml}
 \end{enumerate}
+
+DynamicHtml should be used when we want to write a template that has dynamic components to it.
+For example, if we want to render a table that depends on a certain \textbf{list} of objects, we would choose this option of a View.
+
+The reason is that DynamicView allows us to call upon the \begin{minted}{java} dynamic \end{minted}, that is responsible for handling dynamic parts of a certain view.
+
+Function \emph{dynamic} allows us to specify a \textbf{Consumer} that would be called upon the rendering of the template. 
+This \textbf{Consumer} represents an action that is being taken upon the current html \emph{tag} we currently are.
+
+We can see an example of this in the following piece of code,
+
+\begin{minted}{java}
+	(...)
+	.dynamic(tbody -> vets.forEach(v -> tbody
+                            .tr()
+                                .td()
+                                    .text(v.getFirstName() + " " + v.getLastName())
+                                .__() //td
+                                .td()
+                                    .span()
+                                        .text(format(v.getSpecialties()))
+                                    .__() //span
+                                .__() //td
+                            .__() //tr
+                        ))
+	(...)
+\end{minted}
  
- 
+Here we can see that the dynamic part of the View is iterating the list of Viets and adding a new entry for each.
+
+This \textbf{consumer} will then be consumed, once the \emph{render} method is called.
+
+If we take a look at the \emph{StaticView} we can see that the differences are \textbf{only} on the usage of the method dynamic.
+
+It's not possible to use the dynamic method on a \emph{StaticView} because this view is optimized to work with an internal cache to not have to re-render the entire template each time it's called.
+
+This makes possible to create a static html that does not change and can be used multiple times across a certain project, like so.
+
+\begin{minted}{java}
+	StaticHtml.view()
+    .html()
+      .head()
+        .title().text("HtmlFlow").__()
+      .__() //head
+      .body()
+        .div().attrClass("container")
+          .img().attrSrc("http://url").__()
+        .__() //div
+      .__() //body
+    .__(); //html
+\end{minted}
+
+It's then safe to assume that \emph{DynamicView} will \textbf{always} re-render the tempalte each time it's called. So we have to be careful when using \emph{DynamicView}.
+
 \subsection{Related work}
 \label{sec:relatedwork}
 
@@ -60,8 +123,8 @@ A short summary of what you can include (but not limited to) in the Related Work
 \end{enumerate}
     
 
-\section{Glossary and Nomenclature/List of Symbols} % (fold)
-\label{sec:glossary}
+\section{Functional Reactive Template} % (fold)
+\label{sec:functional_reactive_templates}
 
 Many technical documents use terms or acronyms unknown to the general population. It is common practice to add a glossary to make such documents more accessible. A \textit{glossary} is a nice thing to have in a report and usually very helpful. As you probably can imaging, it is very easy to create in Latex. 
 
